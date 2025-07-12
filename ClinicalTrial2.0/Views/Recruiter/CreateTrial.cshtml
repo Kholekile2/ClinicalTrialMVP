@@ -1,0 +1,190 @@
+@model ClinicalTrial2._0.Models.ViewModels.CreateTrialViewModel
+
+@{
+    ViewData["Title"] = "Create Clinical Trial";
+}
+
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h2><i class="fas fa-plus-circle me-2"></i>Create New Clinical Trial</h2>
+                    <p class="mb-0">Enter the details for your clinical trial</p>
+                </div>
+                <div class="card-body">
+                    <form asp-action="CreateTrial" method="post">
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+                        
+                        <!-- Basic Information -->
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h5 class="mb-0">Basic Information</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label asp-for="NCTNumber" class="form-label"></label>
+                                        <input asp-for="NCTNumber" class="form-control" placeholder="e.g., NCT12345678" />
+                                        <span asp-validation-for="NCTNumber" class="text-danger"></span>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label asp-for="TrialPhase" class="form-label"></label>
+                                        <select asp-for="TrialPhase" class="form-select">
+                                            <option value="">Select Phase</option>
+                                            <option value="1">Phase 1</option>
+                                            <option value="2">Phase 2</option>
+                                            <option value="3">Phase 3</option>
+                                            <option value="4">Phase 4</option>
+                                        </select>
+                                        <span asp-validation-for="TrialPhase" class="text-danger"></span>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label asp-for="TrialName" class="form-label"></label>
+                                    <input asp-for="TrialName" class="form-control" placeholder="Enter trial name" />
+                                    <span asp-validation-for="TrialName" class="text-danger"></span>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label asp-for="Description" class="form-label"></label>
+                                    <textarea asp-for="Description" class="form-control" rows="4" 
+                                              placeholder="Provide a detailed description of the trial"></textarea>
+                                    <span asp-validation-for="Description" class="text-danger"></span>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label asp-for="URL" class="form-label"></label>
+                                    <input asp-for="URL" class="form-control" placeholder="https://clinicaltrials.gov/..." />
+                                    <span asp-validation-for="URL" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Trial Classifications -->
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h5 class="mb-0">Classifications</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label asp-for="DiseaseId" class="form-label"></label>
+                                        <select asp-for="DiseaseId" class="form-select">
+                                            <option value="">Select Disease</option>
+                                            @if (Model.Diseases != null)
+                                            {
+                                                @foreach (var disease in Model.Diseases)
+                                                {
+                                                    <option value="@disease.DiseaseId">@disease.DiseaseName</option>
+                                                }
+                                            }
+                                        </select>
+                                        <span asp-validation-for="DiseaseId" class="text-danger"></span>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label asp-for="LocationId" class="form-label"></label>
+                                        <select asp-for="LocationId" class="form-select">
+                                            <option value="">Select Location</option>
+                                            @if (Model.Locations != null)
+                                            {
+                                                @foreach (var location in Model.Locations)
+                                                {
+                                                    <option value="@location.LocationId">@location.City, @location.Province</option>
+                                                }
+                                            }
+                                        </select>
+                                        <span asp-validation-for="LocationId" class="text-danger"></span>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Treatments</label>
+                                    <div class="row">
+                                        @if (Model.Treatments != null)
+                                        {
+                                            @foreach (var treatment in Model.Treatments)
+                                            {
+                                                <div class="col-md-6 col-lg-4 mb-2">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox" 
+                                                               name="TreatmentIds" value="@treatment.TreatmentId" 
+                                                               id="treatment_@treatment.TreatmentId" />
+                                                        <label class="form-check-label" for="treatment_@treatment.TreatmentId">
+                                                            @treatment.TreatmentName
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                            }
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Eligibility Criteria -->
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h5 class="mb-0">Eligibility Criteria</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label asp-for="Sex" class="form-label"></label>
+                                        <select asp-for="Sex" class="form-select">
+                                            <option value="">All</option>
+                                            <option value="Male">Male</option>
+                                            <option value="Female">Female</option>
+                                        </select>
+                                        <span asp-validation-for="Sex" class="text-danger"></span>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label asp-for="AgeRange" class="form-label"></label>
+                                        <input asp-for="AgeRange" class="form-control" placeholder="e.g., 18-65 years" />
+                                        <span asp-validation-for="AgeRange" class="text-danger"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Trial Timeline -->
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h5 class="mb-0">Trial Timeline</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label asp-for="TrialStartDate" class="form-label"></label>
+                                        <input asp-for="TrialStartDate" class="form-control" type="date" />
+                                        <span asp-validation-for="TrialStartDate" class="text-danger"></span>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label asp-for="TrialEndDate" class="form-label"></label>
+                                        <input asp-for="TrialEndDate" class="form-control" type="date" />
+                                        <span asp-validation-for="TrialEndDate" class="text-danger"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="d-flex justify-content-between">
+                            <a asp-action="Dashboard" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-save me-2"></i>Create Trial
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}
