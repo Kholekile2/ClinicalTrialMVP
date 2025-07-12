@@ -1,0 +1,162 @@
+@model IEnumerable<ClinicalTrial2._0.Models.Trial>
+
+@{
+    ViewData["Title"] = "Recruiter Dashboard";
+}
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1><i class="fas fa-tachometer-alt me-2"></i>Recruiter Dashboard</h1>
+                    <p class="text-muted">Manage your clinical trials</p>
+                </div>
+                <a asp-action="CreateTrial" class="btn btn-primary btn-lg">
+                    <i class="fas fa-plus-circle me-2"></i>Create New Trial
+                </a>
+            </div>
+
+            <!-- Stats Cards -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card bg-primary text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h4 class="mb-0">@Model.Count()</h4>
+                                    <p class="mb-0">Total Trials</p>
+                                </div>
+                                <i class="fas fa-clipboard-list fa-2x"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-success text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h4 class="mb-0">@Model.Count(t => t.TrialStartDate <= DateTime.Today && t.TrialEndDate >= DateTime.Today)</h4>
+                                    <p class="mb-0">Active Trials</p>
+                                </div>
+                                <i class="fas fa-play-circle fa-2x"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-warning text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h4 class="mb-0">@Model.Sum(t => t.Enrollments.Count())</h4>
+                                    <p class="mb-0">Total Enrollments</p>
+                                </div>
+                                <i class="fas fa-users fa-2x"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-info text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h4 class="mb-0">@Model.Sum(t => t.Enrollments.Count(e => e.Status == "Pending"))</h4>
+                                    <p class="mb-0">Pending Reviews</p>
+                                </div>
+                                <i class="fas fa-clock fa-2x"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Trials Table -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-list me-2"></i>Your Clinical Trials</h5>
+                </div>
+                <div class="card-body">
+                    @if (Model.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>NCT Number</th>
+                                        <th>Trial Name</th>
+                                        <th>Disease</th>
+                                        <th>Phase</th>
+                                        <th>Status</th>
+                                        <th>Enrollments</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var trial in Model)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <a asp-action="TrialDetails" asp-route-id="@trial.TrialId" 
+                                                   class="text-decoration-none">@trial.NCTNumber</a>
+                                            </td>
+                                            <td>@trial.TrialName</td>
+                                            <td>@trial.Disease.DiseaseName</td>
+                                            <td><span class="badge bg-info">Phase @trial.TrialPhase</span></td>
+                                            <td>
+                                                @if (trial.TrialStartDate <= DateTime.Today && trial.TrialEndDate >= DateTime.Today)
+                                                {
+                                                    <span class="badge bg-success">Active</span>
+                                                }
+                                                else if (trial.TrialStartDate > DateTime.Today)
+                                                {
+                                                    <span class="badge bg-warning">Upcoming</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-secondary">Completed</span>
+                                                }
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-primary">@trial.Enrollments.Count()</span>
+                                                @if (trial.Enrollments.Any(e => e.Status == "Pending"))
+                                                {
+                                                    <span class="badge bg-warning ms-1">@trial.Enrollments.Count(e => e.Status == "Pending") pending</span>
+                                                }
+                                            </td>
+                                            <td>
+                                                <div class="btn-group btn-group-sm" role="group">
+                                                    <a asp-action="TrialDetails" asp-route-id="@trial.TrialId" 
+                                                       class="btn btn-outline-primary btn-sm" title="View Details">
+                                                        <i class="fas fa-eye"></i>
+                                                    </a>
+                                                    <a asp-action="ManageEnrollments" asp-route-id="@trial.TrialId" 
+                                                       class="btn btn-outline-success btn-sm" title="Manage Enrollments">
+                                                        <i class="fas fa-users"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center py-5">
+                            <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
+                            <h4>No Trials Yet</h4>
+                            <p class="text-muted">Get started by creating your first clinical trial.</p>
+                            <a asp-action="CreateTrial" class="btn btn-primary">
+                                <i class="fas fa-plus-circle me-2"></i>Create Your First Trial
+                            </a>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

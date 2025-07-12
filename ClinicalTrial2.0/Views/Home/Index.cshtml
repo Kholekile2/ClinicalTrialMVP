@@ -1,5 +1,226 @@
 ﻿@{
-    ViewData["Title"] = "Home Page";
+    ViewData["Title"] = "Home";
+}
+
+<!-- Hero Section -->
+<section class="hero-section bg-primary text-white py-5">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-6">
+                <h1 class="display-4 fw-bold">Clinical Trial Access</h1>
+                <p class="lead mb-4">
+                    Connecting patients with life-changing clinical trials. 
+                    Whether you're a patient seeking treatment options or a researcher managing trials, 
+                    we're here to bridge the gap.
+                </p>
+                @if (User.Identity?.IsAuthenticated != true)
+                {
+                    <div class="d-flex gap-3">
+                        <a asp-controller="Account" asp-action="Register" class="btn btn-light btn-lg">
+                            <i class="fas fa-user-plus me-2"></i>Get Started
+                        </a>
+                        <a asp-controller="Account" asp-action="Login" class="btn btn-outline-light btn-lg">
+                            <i class="fas fa-sign-in-alt me-2"></i>Sign In
+                        </a>
+                    </div>
+                }
+            </div>
+            <div class="col-lg-6 text-center">
+                <i class="fas fa-heartbeat" style="font-size: 12rem; opacity: 0.3;"></i>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Features Section -->
+<section class="py-5">
+    <div class="container">
+        <div class="row text-center mb-5">
+            <div class="col-12">
+                <h2 class="display-5 fw-bold">How We Help</h2>
+                <p class="lead text-muted">Our platform serves both patients and researchers</p>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-lg-6 mb-4">
+                <div class="card h-100 shadow-sm border-0">
+                    <div class="card-body text-center p-4">
+                        <div class="bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3" 
+                             style="width: 80px; height: 80px;">
+                            <i class="fas fa-search fa-2x"></i>
+                        </div>
+                        <h3>For Patients</h3>
+                        <p class="text-muted">
+                            Search and discover clinical trials relevant to your medical condition. 
+                            Filter by location, disease type, and eligibility criteria to find the right trial for you.
+                        </p>
+                        <ul class="list-unstyled text-start">
+                            <li><i class="fas fa-check text-success me-2"></i>Browse active clinical trials</li>
+                            <li><i class="fas fa-check text-success me-2"></i>Apply for enrollment online</li>
+                            <li><i class="fas fa-check text-success me-2"></i>Track your enrollment status</li>
+                            <li><i class="fas fa-check text-success me-2"></i>Multi-language support</li>
+                        </ul>
+                        @if (User.Identity?.IsAuthenticated != true)
+                        {
+                            <a href="@Url.Action("Register", "Account", new { UserType = "Participant" })" 
+                               class="btn btn-primary">Join as Participant</a>
+                        }
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6 mb-4">
+                <div class="card h-100 shadow-sm border-0">
+                    <div class="card-body text-center p-4">
+                        <div class="bg-success text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3" 
+                             style="width: 80px; height: 80px;">
+                            <i class="fas fa-user-md fa-2x"></i>
+                        </div>
+                        <h3>For Researchers</h3>
+                        <p class="text-muted">
+                            Manage your clinical trials efficiently. Create trials, track enrollments, 
+                            and communicate with participants all in one place.
+                        </p>
+                        <ul class="list-unstyled text-start">
+                            <li><i class="fas fa-check text-success me-2"></i>Create and manage trials</li>
+                            <li><i class="fas fa-check text-success me-2"></i>Review enrollment applications</li>
+                            <li><i class="fas fa-check text-success me-2"></i>Track participant progress</li>
+                            <li><i class="fas fa-check text-success me-2"></i>Comprehensive dashboard</li>
+                        </ul>
+                        @if (User.Identity?.IsAuthenticated != true)
+                        {
+                            <a href="@Url.Action("Register", "Account", new { UserType = "Recruiter" })" 
+                               class="btn btn-success">Join as Recruiter</a>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Featured Trials Section -->
+@if (ViewBag.FeaturedTrials != null && ((IEnumerable<dynamic>)ViewBag.FeaturedTrials).Any())
+{
+    <section class="py-5 bg-light">
+        <div class="container">
+            <div class="row text-center mb-5">
+                <div class="col-12">
+                    <h2 class="display-5 fw-bold">Featured Clinical Trials</h2>
+                    <p class="lead text-muted">Currently recruiting participants</p>
+                </div>
+            </div>
+            <div class="row">
+                @foreach (var trial in (IEnumerable<dynamic>)ViewBag.FeaturedTrials)
+                {
+                    <div class="col-lg-4 col-md-6 mb-4">
+                        <div class="card h-100 shadow-sm trial-card">
+                            <div class="card-header bg-primary text-white">
+                                <h6 class="mb-0">@trial.NCTNumber</h6>
+                            </div>
+                            <div class="card-body d-flex flex-column">
+                                <h5 class="card-title">@trial.TrialName</h5>
+                                <p class="card-text text-muted flex-grow-1">
+                                    @if (!string.IsNullOrEmpty(trial.Description))
+                                    {
+                                        @(trial.Description.Length > 100 ? trial.Description.Substring(0, 100) + "..." : trial.Description)
+                                    }
+                                </p>
+                                <div class="mt-auto">
+                                    <div class="row text-muted small mb-3">
+                                        <div class="col-6">
+                                            <i class="fas fa-map-marker-alt me-1"></i>@trial.Location.City
+                                        </div>
+                                        <div class="col-6">
+                                            <i class="fas fa-disease me-1"></i>@trial.Disease.DiseaseName
+                                        </div>
+                                    </div>
+                                    @if (User.Identity?.IsAuthenticated != true)
+                                    {
+                                        <a asp-controller="Account" asp-action="Login" class="btn btn-primary btn-sm w-100">
+                                            <i class="fas fa-sign-in-alt me-1"></i>Sign In to View
+                                        </a>
+                                    }
+                                    else
+                                    {
+                                        <a asp-controller="Trial" asp-action="Details" asp-route-id="@trial.TrialId" 
+                                           class="btn btn-primary btn-sm w-100">
+                                            <i class="fas fa-info-circle me-1"></i>View Details
+                                        </a>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+            <div class="text-center">
+                @if (User.Identity?.IsAuthenticated != true)
+                {
+                    <a asp-controller="Account" asp-action="Login" class="btn btn-primary btn-lg">
+                        <i class="fas fa-sign-in-alt me-2"></i>Sign In to Browse All Trials
+                    </a>
+                }
+                else
+                {
+                    <a asp-controller="Trial" asp-action="Index" class="btn btn-primary btn-lg">
+                        <i class="fas fa-search me-2"></i>Browse All Trials
+                    </a>
+                }
+            </div>
+        </div>
+    </section>
+}
+
+<!-- Call to Action Section -->
+<section class="py-5 bg-primary text-white">
+    <div class="container text-center">
+        <div class="row">
+            <div class="col-lg-8 mx-auto">
+                <h2 class="display-5 fw-bold mb-4">Ready to Get Started?</h2>
+                <p class="lead mb-4">
+                    Join thousands of patients and researchers using our platform to advance medical science.
+                </p>
+                @if (User.Identity?.IsAuthenticated != true)
+                {
+                    <div class="d-flex justify-content-center gap-3">
+                        <a asp-controller="Account" asp-action="Register" class="btn btn-light btn-lg">
+                            <i class="fas fa-user-plus me-2"></i>Create Account
+                        </a>
+                        <a href="#" class="btn btn-outline-light btn-lg">
+                            <i class="fas fa-info-circle me-2"></i>Learn More
+                        </a>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</section>
+
+@section Styles {
+    <style>
+        .hero-section {
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+        }
+        
+        .trial-card {
+            transition: transform 0.2s ease-in-out;
+        }
+        
+        .trial-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1) !important;
+        }
+        
+        .card {
+            border: none;
+            border-radius: 10px;
+        }
+        
+        .btn {
+            border-radius: 25px;
+        }
+    </style>
+}ViewData["Title"] = "Home Page";
 }
 
 <div class="text-center">

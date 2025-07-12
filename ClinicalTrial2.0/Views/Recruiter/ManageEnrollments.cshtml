@@ -1,0 +1,272 @@
+@model IEnumerable<ClinicalTrial2._0.Models.Enrollment>
+
+@{
+    ViewData["Title"] = "Manage Enrollments";
+    var trial = ViewBag.Trial as ClinicalTrial2._0.Models.Trial;
+}
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item"><a asp-action="Dashboard">Dashboard</a></li>
+                            <li class="breadcrumb-item"><a asp-action="TrialDetails" asp-route-id="@trial?.TrialId">@trial?.NCTNumber</a></li>
+                            <li class="breadcrumb-item active">Enrollments</li>
+                        </ol>
+                    </nav>
+                    <h1><i class="fas fa-users me-2"></i>Manage Enrollments</h1>
+                    <p class="text-muted">@trial?.TrialName</p>
+                </div>
+                <div>
+                    <span class="badge bg-primary fs-6">@Model.Count() total enrollments</span>
+                </div>
+            </div>
+
+            <!-- Stats Cards -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card bg-warning text-white">
+                        <div class="card-body text-center">
+                            <h4 class="mb-0">@Model.Count(e => e.Status == "Pending")</h4>
+                            <small>Pending Review</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-success text-white">
+                        <div class="card-body text-center">
+                            <h4 class="mb-0">@Model.Count(e => e.Status == "Approved")</h4>
+                            <small>Approved</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-danger text-white">
+                        <div class="card-body text-center">
+                            <h4 class="mb-0">@Model.Count(e => e.Status == "Rejected")</h4>
+                            <small>Rejected</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-info text-white">
+                        <div class="card-body text-center">
+                            <h4 class="mb-0">@Model.Count(e => e.Status == "Completed")</h4>
+                            <small>Completed</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Enrollments Table -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-list me-2"></i>Enrollment Applications</h5>
+                </div>
+                <div class="card-body">
+                    @if (Model.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Participant</th>
+                                        <th>Contact</th>
+                                        <th>Demographics</th>
+                                        <th>Enrolled Date</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var enrollment in Model.OrderByDescending(e => e.EnrollmentDate))
+                                    {
+                                        <tr>
+                                            <td>
+                                                <div>
+                                                    <strong>@enrollment.Participant.FullName</strong>
+                                                    <br>
+                                                    <small class="text-muted">@enrollment.Participant.Email</small>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                @if (!string.IsNullOrEmpty(enrollment.Participant.PhoneNumber))
+                                                {
+                                                    <small>@enrollment.Participant.PhoneNumber</small><br>
+                                                }
+                                                @if (!string.IsNullOrEmpty(enrollment.Participant.PhysicalAddress))
+                                                {
+                                                    <small class="text-muted">@enrollment.Participant.PhysicalAddress</small>
+                                                }
+                                            </td>
+                                            <td>
+                                                <small>
+                                                    <strong>Age:</strong> @enrollment.Participant.Age<br>
+                                                    <strong>Gender:</strong> @enrollment.Participant.Gender
+                                                </small>
+                                            </td>
+                                            <td>
+                                                <small>@enrollment.EnrollmentDate.ToString("MMM dd, yyyy")</small>
+                                                @if (enrollment.StatusUpdatedDate.HasValue)
+                                                {
+                                                    <br><small class="text-muted">Updated: @enrollment.StatusUpdatedDate.Value.ToString("MMM dd, yyyy")</small>
+                                                }
+                                            </td>
+                                            <td>
+                                                @switch (enrollment.Status)
+                                                {
+                                                    case "Pending":
+                                                        <span class="badge bg-warning">Pending</span>
+                                                        break;
+                                                    case "Approved":
+                                                        <span class="badge bg-success">Approved</span>
+                                                        break;
+                                                    case "Rejected":
+                                                        <span class="badge bg-danger">Rejected</span>
+                                                        break;
+                                                    case "Completed":
+                                                        <span class="badge bg-info">Completed</span>
+                                                        break;
+                                                    case "Withdrawn":
+                                                        <span class="badge bg-secondary">Withdrawn</span>
+                                                        break;
+                                                    default:
+                                                        <span class="badge bg-light text-dark">@enrollment.Status</span>
+                                                        break;
+                                                }
+                                                @if (!string.IsNullOrEmpty(enrollment.Notes))
+                                                {
+                                                    <br><small class="text-muted" title="@enrollment.Notes">
+                                                        <i class="fas fa-sticky-note"></i> Notes
+                                                    </small>
+                                                }
+                                            </td>
+                                            <td>
+                                                @if (enrollment.Status == "Pending")
+                                                {
+                                                    <div class="btn-group-vertical btn-group-sm" role="group">
+                                                        <button type="button" class="btn btn-success btn-sm" 
+                                                                onclick="updateStatus(@enrollment.EnrollmentId, 'Approved', @trial?.TrialId)">
+                                                            <i class="fas fa-check me-1"></i>Approve
+                                                        </button>
+                                                        <button type="button" class="btn btn-danger btn-sm" 
+                                                                onclick="showRejectModal(@enrollment.EnrollmentId, '@enrollment.Participant.FullName', @trial?.TrialId)">
+                                                            <i class="fas fa-times me-1"></i>Reject
+                                                        </button>
+                                                    </div>
+                                                }
+                                                else if (enrollment.Status == "Approved")
+                                                {
+                                                    <button type="button" class="btn btn-info btn-sm" 
+                                                            onclick="updateStatus(@enrollment.EnrollmentId, 'Completed', @trial?.TrialId)">
+                                                        <i class="fas fa-flag-checkered me-1"></i>Complete
+                                                    </button>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center py-5">
+                            <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                            <h4>No Enrollments Yet</h4>
+                            <p class="text-muted">No participants have enrolled in this trial yet.</p>
+                            <a asp-action="TrialDetails" asp-route-id="@trial?.TrialId" class="btn btn-primary">
+                                <i class="fas fa-arrow-left me-2"></i>Back to Trial Details
+                            </a>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Reject Modal -->
+<div class="modal fade" id="rejectModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Reject Enrollment</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="rejectForm" method="post" asp-action="UpdateEnrollmentStatus">
+                <div class="modal-body">
+                    <input type="hidden" id="rejectEnrollmentId" name="enrollmentId" />
+                    <input type="hidden" name="status" value="Rejected" />
+                    <input type="hidden" id="rejectTrialId" name="trialId" />
+                    
+                    <p>Are you sure you want to reject the enrollment for <strong id="rejectParticipantName"></strong>?</p>
+                    
+                    <div class="mb-3">
+                        <label for="rejectNotes" class="form-label">Reason for rejection (optional):</label>
+                        <textarea id="rejectNotes" name="notes" class="form-control" rows="3" 
+                                  placeholder="Provide a reason for rejection..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-times me-2"></i>Reject Enrollment
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function updateStatus(enrollmentId, status, trialId) {
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '@Url.Action("UpdateEnrollmentStatus")';
+            
+            const enrollmentInput = document.createElement('input');
+            enrollmentInput.type = 'hidden';
+            enrollmentInput.name = 'enrollmentId';
+            enrollmentInput.value = enrollmentId;
+            
+            const statusInput = document.createElement('input');
+            statusInput.type = 'hidden';
+            statusInput.name = 'status';
+            statusInput.value = status;
+            
+            const trialInput = document.createElement('input');
+            trialInput.type = 'hidden';
+            trialInput.name = 'trialId';
+            trialInput.value = trialId;
+            
+            const tokenInput = document.createElement('input');
+            tokenInput.type = 'hidden';
+            tokenInput.name = '__RequestVerificationToken';
+            tokenInput.value = document.querySelector('input[name="__RequestVerificationToken"]').value;
+            
+            form.appendChild(enrollmentInput);
+            form.appendChild(statusInput);
+            form.appendChild(trialInput);
+            form.appendChild(tokenInput);
+            
+            document.body.appendChild(form);
+            form.submit();
+        }
+        
+        function showRejectModal(enrollmentId, participantName, trialId) {
+            document.getElementById('rejectEnrollmentId').value = enrollmentId;
+            document.getElementById('rejectParticipantName').textContent = participantName;
+            document.getElementById('rejectTrialId').value = trialId;
+            document.getElementById('rejectNotes').value = '';
+            
+            const modal = new bootstrap.Modal(document.getElementById('rejectModal'));
+            modal.show();
+        }
+    </script>
+}

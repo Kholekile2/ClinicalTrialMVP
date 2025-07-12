@@ -1,0 +1,228 @@
+@model ClinicalTrial2._0.Models.Trial
+
+@{
+    ViewData["Title"] = "Trial Details - " + Model.TrialName;
+}
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item"><a asp-action="Dashboard">Dashboard</a></li>
+                            <li class="breadcrumb-item active">@Model.NCTNumber</li>
+                        </ol>
+                    </nav>
+                    <h1>@Model.TrialName</h1>
+                    <p class="lead text-muted">NCT Number: @Model.NCTNumber</p>
+                </div>
+                <div class="btn-group" role="group">
+                    <a asp-action="ManageEnrollments" asp-route-id="@Model.TrialId" class="btn btn-success">
+                        <i class="fas fa-users me-2"></i>Manage Enrollments
+                        @if (Model.Enrollments.Any(e => e.Status == "Pending"))
+                        {
+                            <span class="badge bg-warning ms-1">@Model.Enrollments.Count(e => e.Status == "Pending")</span>
+                        }
+                    </a>
+                </div>
+            </div>
+
+            <div class="row">
+                <!-- Main Content -->
+                <div class="col-lg-8">
+                    <!-- Quick Stats -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card bg-primary text-white">
+                                <div class="card-body text-center">
+                                    <h4 class="mb-0">@Model.Enrollments.Count()</h4>
+                                    <small>Total Enrollments</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-success text-white">
+                                <div class="card-body text-center">
+                                    <h4 class="mb-0">@Model.Enrollments.Count(e => e.Status == "Approved")</h4>
+                                    <small>Approved</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-warning text-white">
+                                <div class="card-body text-center">
+                                    <h4 class="mb-0">@Model.Enrollments.Count(e => e.Status == "Pending")</h4>
+                                    <small>Pending</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-danger text-white">
+                                <div class="card-body text-center">
+                                    <h4 class="mb-0">@Model.Enrollments.Count(e => e.Status == "Rejected")</h4>
+                                    <small>Rejected</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Trial Information -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5><i class="fas fa-info-circle me-2"></i>Trial Information</h5>
+                        </div>
+                        <div class="card-body">
+                            @if (!string.IsNullOrEmpty(Model.Description))
+                            {
+                                <div class="mb-3">
+                                    <strong>Description:</strong>
+                                    <p>@Model.Description</p>
+                                </div>
+                            }
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <strong><i class="fas fa-disease me-2"></i>Disease/Condition:</strong>
+                                    <p class="mb-0">@Model.Disease.DiseaseName</p>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <strong><i class="fas fa-map-marker-alt me-2"></i>Location:</strong>
+                                    <p class="mb-0">@Model.Location.FullAddress</p>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <strong><i class="fas fa-calendar-alt me-2"></i>Start Date:</strong>
+                                    <p class="mb-0">@Model.TrialStartDate.ToString("MMMM dd, yyyy")</p>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <strong><i class="fas fa-calendar-check me-2"></i>End Date:</strong>
+                                    <p class="mb-0">@Model.TrialEndDate.ToString("MMMM dd, yyyy")</p>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <strong><i class="fas fa-flask me-2"></i>Phase:</strong>
+                                    <p class="mb-0">Phase @Model.TrialPhase</p>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <strong><i class="fas fa-calendar-plus me-2"></i>Created:</strong>
+                                    <p class="mb-0">@Model.CreatedDate.ToString("MMMM dd, yyyy")</p>
+                                </div>
+                                @if (!string.IsNullOrEmpty(Model.Sex))
+                                {
+                                    <div class="col-md-6 mb-3">
+                                        <strong><i class="fas fa-user me-2"></i>Gender:</strong>
+                                        <p class="mb-0">@Model.Sex</p>
+                                    </div>
+                                }
+                                @if (!string.IsNullOrEmpty(Model.AgeRange))
+                                {
+                                    <div class="col-md-6 mb-3">
+                                        <strong><i class="fas fa-birthday-cake me-2"></i>Age Range:</strong>
+                                        <p class="mb-0">@Model.AgeRange</p>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Treatments -->
+                    @if (Model.TrialTreatments.Any())
+                    {
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h5><i class="fas fa-pills me-2"></i>Treatments</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    @foreach (var trialTreatment in Model.TrialTreatments)
+                                    {
+                                        <div class="col-md-6 mb-3">
+                                            <div class="border rounded p-3">
+                                                <h6>@trialTreatment.Treatment.TreatmentName</h6>
+                                                @if (!string.IsNullOrEmpty(trialTreatment.Treatment.Description))
+                                                {
+                                                    <p class="text-muted mb-1">@trialTreatment.Treatment.Description</p>
+                                                }
+                                                @if (!string.IsNullOrEmpty(trialTreatment.Treatment.TreatmentType))
+                                                {
+                                                    <span class="badge bg-light text-dark">@trialTreatment.Treatment.TreatmentType</span>
+                                                }
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                <!-- Sidebar -->
+                <div class="col-lg-4">
+                    <!-- Trial Status -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="fas fa-heartbeat me-2"></i>Trial Status</h5>
+                        </div>
+                        <div class="card-body text-center">
+                            @if (Model.TrialStartDate <= DateTime.Today && Model.TrialEndDate >= DateTime.Today)
+                            {
+                                <span class="badge bg-success fs-5 mb-2">Currently Active</span>
+                                <p class="text-muted">This trial is actively recruiting participants.</p>
+                            }
+                            else if (Model.TrialStartDate > DateTime.Today)
+                            {
+                                <span class="badge bg-warning fs-5 mb-2">Upcoming</span>
+                                <p class="text-muted">Trial will start on @Model.TrialStartDate.ToString("MMMM dd, yyyy").</p>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary fs-5 mb-2">Completed</span>
+                                <p class="text-muted">This trial has ended.</p>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- External Links -->
+                    @if (!string.IsNullOrEmpty(Model.URL))
+                    {
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h5 class="mb-0"><i class="fas fa-external-link-alt me-2"></i>External Resources</h5>
+                            </div>
+                            <div class="card-body">
+                                <a href="@Model.URL" target="_blank" class="btn btn-outline-primary w-100">
+                                    <i class="fas fa-external-link-alt me-2"></i>View on ClinicalTrials.gov
+                                </a>
+                            </div>
+                        </div>
+                    }
+
+                    <!-- Recent Activity -->
+                    @if (Model.Enrollments.Any())
+                    {
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0"><i class="fas fa-clock me-2"></i>Recent Activity</h5>
+                            </div>
+                            <div class="card-body">
+                                @foreach (var enrollment in Model.Enrollments.OrderByDescending(e => e.EnrollmentDate).Take(5))
+                                {
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <div>
+                                            <small class="text-muted">@enrollment.Participant.FullName enrolled</small>
+                                        </div>
+                                        <small class="text-muted">@enrollment.EnrollmentDate.ToString("MMM dd")</small>
+                                    </div>
+                                }
+                                <a asp-action="ManageEnrollments" asp-route-id="@Model.TrialId" class="btn btn-outline-primary btn-sm w-100 mt-2">
+                                    View All Enrollments
+                                </a>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
