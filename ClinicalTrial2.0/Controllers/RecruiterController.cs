@@ -12,15 +12,18 @@ namespace ClinicalTrial2._0.Controllers
     {
         private readonly ITrialService _trialService;
         private readonly IReferenceDataService _referenceDataService;
+        private readonly ICsvTrialService _csvTrialService;
         private readonly UserManager<ApplicationUser> _userManager;
 
         public RecruiterController(
             ITrialService trialService,
             IReferenceDataService referenceDataService,
+            ICsvTrialService csvTrialService,
             UserManager<ApplicationUser> userManager)
         {
             _trialService = trialService;
             _referenceDataService = referenceDataService;
+            _csvTrialService = csvTrialService;
             _userManager = userManager;
         }
 
@@ -122,7 +125,7 @@ namespace ClinicalTrial2._0.Controllers
 
             // Verify the recruiter owns this trial
             var user = await _userManager.GetUserAsync(User);
-            if (trial.CreatedByUserId != user.Id)
+            if (user == null || trial.CreatedByUserId != user.Id)
                 return Forbid();
 
             var enrollments = await _trialService.GetTrialEnrollmentsAsync(id);
@@ -133,7 +136,7 @@ namespace ClinicalTrial2._0.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> UpdateEnrollmentStatus(int enrollmentId, string status, int trialId, string notes = null)
+        public async Task<IActionResult> UpdateEnrollmentStatus(int enrollmentId, string status, int trialId, string? notes = null)
         {
             if (!User.IsInRole("Recruiter"))
                 return RedirectToAction("AccessDenied", "Account");
@@ -149,6 +152,82 @@ namespace ClinicalTrial2._0.Controllers
             }
 
             return RedirectToAction("ManageEnrollments", new { id = trialId });
+        }
+
+        [HttpGet]
+        public IActionResult UploadCsv()
+        {
+            var model = new CsvUploadViewModel();
+            return View(model);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UploadCsv(CsvUploadViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return View(model);
+            }
+
+            if (model.CsvFile == null || model.CsvFile.Length == 0)
+            {
+                ModelState.AddModelError("CsvFile", "Please select a valid CSV file.");
+                return View(model);
+            }
+
+            // Validate file type
+            var allowedExtensions = new[] { ".csv" };
+            var fileExtension = Path.GetExtension(model.CsvFile.FileName).ToLowerInvariant();
+            
+            if (!allowedExtensions.Contains(fileExtension))
+            {
+                ModelState.AddModelError("CsvFile", "Only CSV files are allowed.");
+                return View(model);
+            }
+
+            // Validate file size (max 10MB)
+            if (model.CsvFile.Length > 10 * 1024 * 1024)
+            {
+                ModelState.AddModelError("CsvFile", "File size cannot exceed 10MB.");
+                return View(model);
+            }
+
+            try
+            {
+                var userId = _userManager.GetUserId(User);
+                if (userId == null)
+                {
+                    return RedirectToAction("Login", "Account");
+                }
+
+                using var stream = model.CsvFile.OpenReadStream();
+                var result = await _csvTrialService.UploadTrialsFromCsvAsync(stream, userId);
+
+                model.UploadResult = new CsvUploadResultViewModel
+                {
+                    Success = result.Success,
+                    TrialsProcessed = result.TrialsProcessed,
+                    TrialsImported = result.TrialsImported,
+                    Errors = result.Errors,
+                    Message = result.Message
+                };
+
+                if (result.Success && result.TrialsImported > 0)
+                {
+                    TempData["SuccessMessage"] = result.Message;
+                }
+                else if (!result.Success)
+                {
+                    TempData["ErrorMessage"] = result.Message;
+                }
+            }
+            catch (Exception ex)
+            {
+                ModelState.AddModelError("", $"An error occurred while processing the CSV file: {ex.Message}");
+            }
+
+            return View(model);
         }
     }
 }

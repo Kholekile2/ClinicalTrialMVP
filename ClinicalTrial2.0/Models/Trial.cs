@@ -16,7 +16,7 @@ namespace ClinicalTrial2._0.Models
         [StringLength(200)]
         public string TrialName { get; set; } = string.Empty;
 
-        [StringLength(500)]
+        [StringLength(2000)]  // Increased from 500 to 2000 characters
         public string? Description { get; set; }
 
         [Url]

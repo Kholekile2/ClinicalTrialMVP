@@ -60,6 +60,10 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ITrialService, TrialService>();
 builder.Services.AddScoped<IReferenceDataService, ReferenceDataService>();
 
+// Register CSV and Translation services
+builder.Services.AddHttpClient<ITranslationService, TranslationService>();
+builder.Services.AddScoped<ICsvTrialService, CsvTrialService>();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
