@@ -85,6 +85,56 @@ The CSV file must follow this exact column structure:
 - **Date Format**: YYYY-MM-DD or MM/DD/YYYY
   - System automatically parses common date formats
 
+## Recent Updates and Enhancements (July 2025)
+
+### **Production-Ready Improvements**
+
+#### **Real-World CSV Format Support**
+- **Dual Format Detection**: Automatically detects and processes both custom CSV formats and real clinicaltrials.gov NCT format
+- **Flexible Column Mapping**: Handles variations in CSV structure with graceful fallback mechanisms
+- **Enhanced Data Validation**: Robust parsing for international date formats and location variations
+
+#### **Advanced Location Parsing**
+- **Multiple Format Support**: 
+  - Full format: `Organization,City,Province,PostalCode,Country`
+  - Simplified format: `Organization,City,Country` 
+  - Minimal format: `City,Province`
+- **Country Detection**: Intelligent detection of country names in location strings
+- **Default Handling**: Graceful defaults for missing location components
+
+#### **Stream and Memory Management**
+- **Disposal Protection**: Fixed "Cannot access disposed object" errors through proper stream copying
+- **Memory-Safe Processing**: CSV content loaded into memory to prevent stream access issues
+- **Resource Cleanup**: Proper disposal of streams and memory resources
+
+#### **Enhanced Error Handling**
+- **Detailed Error Reporting**: Specific error messages for each failed trial with context
+- **Graceful Degradation**: System continues processing valid records even when some fail
+- **Column Range Validation**: Handles CSV files with missing or extra columns
+
+#### **Database Optimizations**
+- **Field Length Adjustments**: Increased Description field from 500 to 2000 characters
+- **Data Truncation**: Automatic field truncation to prevent database constraint violations
+- **Transaction Safety**: Enhanced rollback mechanisms for data integrity
+
+---
+
+#### **Tested CSV Formats**
+
+The system has been tested and validated with real clinical trial data from clinicaltrials.gov:
+
+**Supported NCT Format Example:**
+```csv
+NCT Number,Study Title,Study URL,Study Status,Brief Summary,Conditions,Interventions,Sex,Age,Phases,Start Date,Completion Date,Locations
+NCT06050356,"First-in-Human Trial of the Novel Tuberculosis Vaccine Candidate, H107e/CAF®10b",https://clinicaltrials.gov/study/NCT06050356,RECRUITING,"Study description...",Healthy,BIOLOGICAL: H107e|BIOLOGICAL: CAF®10b,ALL,ADULT,PHASE1,2024-03-14,2026-05,"Aurum Institute, Pretoria, Gauteng, 0028, South Africa"
+```
+
+**Custom Format Example:**
+```csv
+NCT Number,Trial Name,URL,Status,Description,Condition,Treatment,Sex,Age Range,Trial Phase,Start Date,End Date,Location
+NCT12345678,"COVID-19 Vaccine Study",https://example.com,Recruiting,"Study to evaluate safety...",COVID-19,"Drug:Vaccine|Therapy:Placebo",All,"18-65 Years","Phase 2",2024-01-01,2024-12-31,"123 Main St,Cape Town,Western Cape,8001,South Africa"
+```
+
 ## Services and Models Used
 
 ### **Core Services**

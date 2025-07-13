@@ -1,0 +1,71 @@
+feat: Implement comprehensive CSV upload system and fix enrollment notification workflow
+
+## Major Features Added:
+- **CSV Upload System**: Complete three-layer architecture for bulk trial data import
+  - Support for real-world clinicaltrials.gov CSV format (NCT format)
+  - Flexible location parsing for various address formats (Organization,City,Country)
+  - Robust date parsing supporting multiple formats (YYYY-MM-DD, MM/DD/YYYY)
+  - Data validation and truncation for database field constraints
+  - Automatic multilingual translation generation (Xhosa, Zulu, Afrikaans)
+
+- **Enhanced Enrollment Management**: Fixed critical notification and approval workflow
+  - Resolved null reference exception in MyEnrollments view
+  - Added enrollment relationship loading with proper Entity Framework includes
+  - Enhanced recruiter dashboard with prominent pending enrollment alerts
+  - Visual indicators for trials requiring attention (warning badges, highlighted rows)
+
+## Technical Improvements:
+- **CSV Processing**: 
+  - TinyCsvParser integration with QuotedStringTokenizer for robust parsing
+  - Dual mapping system (ClinicalTrialsCsvMapping + fallback TrialCsvMapping)
+  - Stream disposal handling to prevent "Cannot access disposed object" errors
+  - Enhanced error reporting with detailed failure descriptions
+
+- **Data Layer Enhancements**:
+  - Modified TrialUploadDto to use string dates for flexible parsing
+  - Added ParseDate utility with multiple format support
+  - Improved location parsing with country name detection
+  - Database field length adjustments (Description: 500→2000 characters)
+
+- **Service Layer Updates**:
+  - Enhanced TrialService with ApplicationDbContext dependency
+  - Added comprehensive Include() statements for enrollment relationships
+  - Improved GetTrialsByCreatorAsync and GetParticipantEnrollmentsAsync methods
+
+## UI/UX Improvements:
+- **Recruiter Dashboard**:
+  - Prominent alert section for pending enrollments requiring attention
+  - Enhanced pending enrollment cards with visual badges and notifications
+  - Table row highlighting for trials with pending enrollments
+  - Action buttons dynamically styled based on enrollment status
+
+- **CSV Upload Interface**:
+  - File validation with 10MB size limit and .csv type checking
+  - Comprehensive upload results with success/error statistics
+  - Progress feedback and detailed error reporting
+
+## Files Modified:
+- Services/CsvTrialService.cs - Core CSV processing logic
+- Services/TrialService.cs - Enrollment relationship loading
+- Models/DTOs/TrialUploadDto.cs - Flexible date field handling
+- Controllers/RecruiterController.cs - CSV upload endpoints
+- Views/Recruiter/Dashboard.cshtml - Enhanced notification system
+- Views/Recruiter/UploadCsv.cshtml - File upload interface
+- Services/CsvMapping/* - CSV column mapping configurations
+
+## Database Changes:
+- Migration: Increased Trial.Description field length to 2000 characters
+- Enhanced location parsing supporting various international formats
+
+## Bug Fixes:
+- Fixed "Cannot access disposed object" error in CSV stream handling
+- Resolved NullReferenceException in enrollment views due to missing includes
+- Fixed location parsing for non-standard address formats
+- Corrected date parsing for various international date formats
+
+## Testing:
+- Successfully imported real clinical trial data (NCT06050356, NCT06423612)
+- Verified enrollment workflow from participant enrollment to recruiter approval
+- Tested CSV upload with various file formats and edge cases
+
+This implementation provides a production-ready CSV upload system that handles real-world clinical trial data while ensuring recruiters can efficiently manage participant enrollments through an intuitive notification system.

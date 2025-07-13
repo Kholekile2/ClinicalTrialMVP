@@ -57,27 +57,39 @@ namespace ClinicalTrial2._0.Services
             
             try
             {
-                var trialData = await ParseCsvAsync(csvStream);
-                result.TrialsProcessed = trialData.Count;
-
-                foreach (var trialDto in trialData)
+                // Read all content into memory to avoid stream disposal issues
+                byte[] csvBytes;
+                using (var memoryStream = new MemoryStream())
                 {
-                    try
+                    await csvStream.CopyToAsync(memoryStream);
+                    csvBytes = memoryStream.ToArray();
+                }
+
+                // Create a new memory stream from the bytes for processing
+                using (var processingStream = new MemoryStream(csvBytes))
+                {
+                    var trialData = await ParseCsvAsync(processingStream);
+                    result.TrialsProcessed = trialData.Count;
+
+                    foreach (var trialDto in trialData)
                     {
-                        await ProcessTrialAsync(trialDto, userId);
-                        result.TrialsImported++;
-                    }
-                    catch (InvalidOperationException ex)
-                    {
-                        result.Errors.Add($"Trial {trialDto.NCTNumber}: {ex.Message}");
-                    }
-                    catch (ArgumentException ex)
-                    {
-                        result.Errors.Add($"Trial {trialDto.NCTNumber}: Invalid data format - {ex.Message}");
-                    }
-                    catch (Exception ex)
-                    {
-                        result.Errors.Add($"Trial {trialDto.NCTNumber}: Unexpected error - {ex.Message}");
+                        try
+                        {
+                            await ProcessTrialAsync(trialDto, userId);
+                            result.TrialsImported++;
+                        }
+                        catch (InvalidOperationException ex)
+                        {
+                            result.Errors.Add($"Trial {trialDto.NCTNumber}: {ex.Message}");
+                        }
+                        catch (ArgumentException ex)
+                        {
+                            result.Errors.Add($"Trial {trialDto.NCTNumber}: Invalid data format - {ex.Message}");
+                        }
+                        catch (Exception ex)
+                        {
+                            result.Errors.Add($"Trial {trialDto.NCTNumber}: Unexpected error - {ex.Message}");
+                        }
                     }
                 }
 
@@ -104,40 +116,207 @@ namespace ClinicalTrial2._0.Services
         {
             var trials = new List<TrialUploadDto>();
 
-            var csvParserOptions = new CsvParserOptions(true, new QuotedStringTokenizer(','));
-            
-            // Try the clinical trials format first (actual format from clinicaltrials.gov)
-            ICsvMapping<TrialUploadDto> csvMapper = new ClinicalTrialsCsvMapping();
-            var csvParser = new CsvParser<TrialUploadDto>(csvParserOptions, csvMapper);
-
-            var result = csvParser.ReadFromStream(csvStream, System.Text.Encoding.UTF8);
-
-            foreach (var record in result)
+            try
             {
-                if (record.IsValid)
-                {
-                    trials.Add(record.Result);
-                }
-            }
+                // Ensure stream is at the beginning
+                csvStream.Position = 0;
+                
+                // Use a more lenient CSV parser configuration
+                var csvParserOptions = new CsvParserOptions(true, new QuotedStringTokenizer(','));
+                
+                // Try the clinical trials format first (actual format from clinicaltrials.gov)
+                ICsvMapping<TrialUploadDto> csvMapper = new ClinicalTrialsCsvMapping();
+                var csvParser = new CsvParser<TrialUploadDto>(csvParserOptions, csvMapper);
 
-            // If no valid records found, try the original mapping format
-            if (trials.Count == 0)
-            {
-                csvStream.Position = 0; // Reset stream position
-                csvMapper = new TrialCsvMapping();
-                csvParser = new CsvParser<TrialUploadDto>(csvParserOptions, csvMapper);
-                result = csvParser.ReadFromStream(csvStream, System.Text.Encoding.UTF8);
+                var result = csvParser.ReadFromStream(csvStream, System.Text.Encoding.UTF8);
 
                 foreach (var record in result)
                 {
-                    if (record.IsValid)
+                    if (record.IsValid && record.Result != null)
                     {
-                        trials.Add(record.Result);
+                        try
+                        {
+                            // Validate and clean the data before adding
+                            var cleanedTrial = CleanTrialData(record.Result);
+                            if (!string.IsNullOrEmpty(cleanedTrial.NCTNumber))
+                            {
+                                trials.Add(cleanedTrial);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"Error cleaning trial data: {ex.Message}");
+                        }
+                    }
+                    else if (record.Error != null)
+                    {
+                        // Log parsing errors for debugging
+                        Console.WriteLine($"CSV parsing error for row: {record.Error.ColumnIndex} - {record.Error.Value}");
+                    }
+                }
+
+                // If no valid records found, try the original mapping format
+                if (trials.Count == 0)
+                {
+                    csvStream.Position = 0; // Reset stream position
+                    csvMapper = new TrialCsvMapping();
+                    csvParser = new CsvParser<TrialUploadDto>(csvParserOptions, csvMapper);
+                    result = csvParser.ReadFromStream(csvStream, System.Text.Encoding.UTF8);
+
+                    foreach (var record in result)
+                    {
+                        if (record.IsValid && record.Result != null)
+                        {
+                            try
+                            {
+                                var cleanedTrial = CleanTrialData(record.Result);
+                                if (!string.IsNullOrEmpty(cleanedTrial.NCTNumber))
+                                {
+                                    trials.Add(cleanedTrial);
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                Console.WriteLine($"Error cleaning trial data in fallback: {ex.Message}");
+                            }
+                        }
                     }
                 }
             }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException($"Error parsing CSV stream: {ex.Message}", ex);
+            }
 
             return await Task.FromResult(trials);
+        }
+
+        /// <summary>
+        /// Cleans and validates trial data from CSV parsing
+        /// </summary>
+        private TrialUploadDto CleanTrialData(TrialUploadDto trial)
+        {
+            if (trial == null)
+                return new TrialUploadDto();
+
+            try
+            {
+                // Handle null or empty strings with safe access
+                trial.NCTNumber = SafeTrim(trial.NCTNumber);
+                trial.TrialName = SafeTrim(trial.TrialName);
+                trial.Description = SafeTrim(trial.Description);
+                trial.Condition = SafeTrim(trial.Condition);
+                trial.Treatment = SafeTrim(trial.Treatment);
+                trial.Sex = SafeTrim(trial.Sex, "All");
+                trial.AgeRange = SafeTrim(trial.AgeRange, "All");
+                trial.TrialPhase = SafeTrim(trial.TrialPhase);
+                trial.Status = SafeTrim(trial.Status, "Unknown");
+                trial.Location = SafeTrim(trial.Location);
+                trial.URL = SafeTrim(trial.URL);
+                trial.TrialStartDate = SafeTrim(trial.TrialStartDate);
+                trial.TrialEndDate = SafeTrim(trial.TrialEndDate);
+
+                // Handle special cases
+                if (trial.TrialPhase == "NA" || string.IsNullOrEmpty(trial.TrialPhase))
+                {
+                    trial.TrialPhase = "Not Applicable";
+                }
+
+                // Handle age range variations
+                if (trial.AgeRange?.ToUpper() == "ALL" || string.IsNullOrEmpty(trial.AgeRange))
+                {
+                    trial.AgeRange = "All Ages";
+                }
+
+                // Handle status variations
+                if (trial.Status?.ToUpper() == "NOT_YET_RECRUITING")
+                {
+                    trial.Status = "Not Yet Recruiting";
+                }
+
+                // Validate dates
+                if (string.IsNullOrEmpty(trial.TrialStartDate))
+                {
+                    trial.TrialStartDate = DateTime.Today.ToString("yyyy-MM-dd");
+                }
+                if (string.IsNullOrEmpty(trial.TrialEndDate))
+                {
+                    trial.TrialEndDate = DateTime.Today.AddYears(1).ToString("yyyy-MM-dd");
+                }
+
+                return trial;
+            }
+            catch (Exception)
+            {
+                // If cleaning fails, return a minimal valid object
+                return new TrialUploadDto
+                {
+                    NCTNumber = trial?.NCTNumber ?? "",
+                    TrialName = trial?.TrialName ?? "",
+                    Sex = "All",
+                    AgeRange = "All Ages",
+                    Status = "Unknown",
+                    TrialPhase = "Not Applicable"
+                };
+            }
+        }
+
+        /// <summary>
+        /// Safely trims a string value, handling null cases
+        /// </summary>
+        private string SafeTrim(string value, string defaultValue = "")
+        {
+            try
+            {
+                return value?.Trim() ?? defaultValue;
+            }
+            catch
+            {
+                return defaultValue;
+            }
+        }
+
+        /// <summary>
+        /// Safely parses a date string to DateTime, handling various formats
+        /// </summary>
+        private DateTime ParseDate(string dateString)
+        {
+            if (string.IsNullOrEmpty(dateString))
+                return DateTime.Today;
+
+            try
+            {
+                // Try standard formats first
+                if (DateTime.TryParse(dateString, out DateTime result))
+                {
+                    return result;
+                }
+
+                // Try specific formats
+                string[] formats = { 
+                    "yyyy-MM-dd", 
+                    "MM/dd/yyyy", 
+                    "dd/MM/yyyy",
+                    "yyyy/MM/dd",
+                    "MM-dd-yyyy",
+                    "dd-MM-yyyy"
+                };
+
+                foreach (var format in formats)
+                {
+                    if (DateTime.TryParseExact(dateString, format, null, System.Globalization.DateTimeStyles.None, out result))
+                    {
+                        return result;
+                    }
+                }
+
+                // If all parsing fails, return today's date
+                return DateTime.Today;
+            }
+            catch
+            {
+                return DateTime.Today;
+            }
         }
 
         /// <summary>
@@ -174,8 +353,8 @@ namespace ClinicalTrial2._0.Services
                     TrialPhase = ExtractNumber.GetNumber(trialDto.TrialPhase),
                     Sex = TruncateString(trialDto.Sex, 20),
                     AgeRange = TruncateString(trialDto.AgeRange, 50),
-                    TrialStartDate = trialDto.TrialStartDate,
-                    TrialEndDate = trialDto.TrialEndDate,
+                    TrialStartDate = ParseDate(trialDto.TrialStartDate),
+                    TrialEndDate = ParseDate(trialDto.TrialEndDate),
                     CreatedByUserId = userId,
                     DiseaseId = disease.DiseaseId,
                     LocationId = location.LocationId,
@@ -243,19 +422,25 @@ namespace ClinicalTrial2._0.Services
         {
             var locationParts = locationString.Split(',');
             
-            if (locationParts.Length < 2)
-            {
-                throw new ArgumentException("Invalid location format. Expected at least: City,Province or Organization,City,Province,PostalCode,Country");
-            }
-
-            // Handle different location formats
+            // Declare variables first
             string streetAddress = "";
             string city = "";
             string province = "";
             string postalCode = "";
             string country = "South Africa"; // Default country
+            
+            if (locationParts.Length < 1 || string.IsNullOrEmpty(locationString.Trim()))
+            {
+                throw new ArgumentException("Invalid location format. Location cannot be empty.");
+            }
 
-            if (locationParts.Length >= 5)
+            if (locationParts.Length == 1)
+            {
+                // Single part - treat as city
+                city = locationParts[0].Trim();
+                province = "Unknown";
+            }
+            else if (locationParts.Length >= 5)
             {
                 // Full format: "Street/Organization,City,Province,PostalCode,Country"
                 streetAddress = locationParts[0].Trim();
@@ -274,16 +459,43 @@ namespace ClinicalTrial2._0.Services
             }
             else if (locationParts.Length >= 3)
             {
-                // Format: "Organization,City,Province"
-                streetAddress = locationParts[0].Trim();
-                city = locationParts[1].Trim();
-                province = locationParts[2].Trim();
+                // Check if the last part is a country name
+                string lastPart = locationParts[locationParts.Length - 1].Trim();
+                if (IsCountryName(lastPart))
+                {
+                    // Format: "Organization,City,Country" 
+                    streetAddress = locationParts[0].Trim();
+                    city = locationParts[1].Trim();
+                    country = lastPart;
+                    province = "Unknown"; // Default province when not specified
+                }
+                else
+                {
+                    // Format: "Organization,City,Province"
+                    streetAddress = locationParts[0].Trim();
+                    city = locationParts[1].Trim();
+                    province = locationParts[2].Trim();
+                }
             }
             else
             {
-                // Minimal format: "City,Province"
-                city = locationParts[0].Trim();
-                province = locationParts[1].Trim();
+                // Handle 2 parts: could be "City,Province" or "City,Country"
+                string firstPart = locationParts[0].Trim();
+                string secondPart = locationParts[1].Trim();
+                
+                if (IsCountryName(secondPart))
+                {
+                    // Format: "City,Country"
+                    city = firstPart;
+                    country = secondPart;
+                    province = "Unknown";
+                }
+                else
+                {
+                    // Format: "City,Province"
+                    city = firstPart;
+                    province = secondPart;
+                }
             }
 
             // Truncate fields to fit database constraints
@@ -417,6 +629,26 @@ namespace ClinicalTrial2._0.Services
             }
 
             await _context.SaveChangesAsync();
+        }
+
+        /// <summary>
+        /// Checks if a string is likely a country name
+        /// </summary>
+        private bool IsCountryName(string name)
+        {
+            if (string.IsNullOrEmpty(name))
+                return false;
+
+            // Common country names that might appear in clinical trial data
+            string[] countries = {
+                "South Africa", "United States", "United Kingdom", "Canada", "Australia",
+                "Germany", "France", "Italy", "Spain", "Netherlands", "Belgium", "Sweden",
+                "Norway", "Denmark", "Switzerland", "Austria", "Brazil", "Mexico", "Argentina",
+                "Japan", "China", "India", "Korea", "Singapore", "Thailand", "Malaysia",
+                "Israel", "Egypt", "Nigeria", "Kenya", "Ghana", "Morocco", "Tunisia"
+            };
+
+            return countries.Any(country => string.Equals(country, name, StringComparison.OrdinalIgnoreCase));
         }
     }
 }

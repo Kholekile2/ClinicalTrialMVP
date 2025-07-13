@@ -12,8 +12,8 @@ namespace ClinicalTrial2._0.Models.DTOs
         public string TrialPhase { get; set; } = string.Empty;
         public string Sex { get; set; } = string.Empty;
         public string AgeRange { get; set; } = string.Empty;
-        public DateTime TrialStartDate { get; set; }
-        public DateTime TrialEndDate { get; set; }
+        public string TrialStartDate { get; set; } = string.Empty; // Changed to string for flexible CSV parsing
+        public string TrialEndDate { get; set; } = string.Empty;   // Changed to string for flexible CSV parsing
         public string Location { get; set; } = string.Empty; // Comma-separated location data
         public string Condition { get; set; } = string.Empty; // Disease/condition
         public string Description { get; set; } = string.Empty; // Trial description
