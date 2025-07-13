@@ -1,0 +1,204 @@
+@model ClinicalTrial2._0.Models.ViewModels.CsvUploadViewModel
+@{
+    ViewData["Title"] = "Upload Trials from CSV";
+}
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="mb-0">
+                        <i class="fas fa-upload mr-2"></i>
+                        Upload Clinical Trials from CSV
+                    </h3>
+                </div>
+                <div class="card-body">
+                    @if (TempData["SuccessMessage"] != null)
+                    {
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            <i class="fas fa-check-circle mr-2"></i>
+                            @TempData["SuccessMessage"]
+                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                    }
+
+                    @if (TempData["ErrorMessage"] != null)
+                    {
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <i class="fas fa-exclamation-triangle mr-2"></i>
+                            @TempData["ErrorMessage"]
+                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                    }
+
+                    <!-- Instructions Card -->
+                    <div class="card border-info mb-4">
+                        <div class="card-header bg-info text-white">
+                            <h5 class="mb-0">
+                                <i class="fas fa-info-circle mr-2"></i>
+                                CSV Format Instructions
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <p class="mb-3">Please ensure your CSV file follows this exact column structure:</p>
+                            
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-sm">
+                                    <thead class="thead-dark">
+                                        <tr>
+                                            <th>Column</th>
+                                            <th>Field Name</th>
+                                            <th>Example</th>
+                                            <th>Required</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr><td>0</td><td>NCT Number</td><td>NCT12345678</td><td>Yes</td></tr>
+                                        <tr><td>1</td><td>Trial Name</td><td>COVID-19 Vaccine Study</td><td>Yes</td></tr>
+                                        <tr><td>2</td><td>URL</td><td>https://clinicaltrials.gov/...</td><td>No</td></tr>
+                                        <tr><td>3</td><td>Status</td><td>Recruiting</td><td>No</td></tr>
+                                        <tr><td>4</td><td>Description</td><td>Study to evaluate safety...</td><td>No</td></tr>
+                                        <tr><td>5</td><td>Condition</td><td>COVID-19</td><td>Yes</td></tr>
+                                        <tr><td>6</td><td>Treatment</td><td>Drug:Vaccine|Therapy:Placebo</td><td>No</td></tr>
+                                        <tr><td>7</td><td>Sex</td><td>All</td><td>No</td></tr>
+                                        <tr><td>8</td><td>Age Range</td><td>18-65 Years</td><td>No</td></tr>
+                                        <tr><td>9</td><td>Trial Phase</td><td>Phase 2</td><td>No</td></tr>
+                                        <tr><td>10</td><td>Start Date</td><td>2024-01-01</td><td>Yes</td></tr>
+                                        <tr><td>11</td><td>End Date</td><td>2024-12-31</td><td>Yes</td></tr>
+                                        <tr><td>12</td><td>Location</td><td>123 Main St,Cape Town,Western Cape,8001,South Africa</td><td>Yes</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="alert alert-warning mt-3">
+                                <strong>Important Notes:</strong>
+                                <ul class="mb-0">
+                                    <li><strong>Treatment format:</strong> Use pipe (|) to separate multiple treatments and colon (:) to separate type and name</li>
+                                    <li><strong>Location format:</strong> Street,City,Province,PostalCode,Country (comma-separated)</li>
+                                    <li><strong>Date format:</strong> YYYY-MM-DD or MM/DD/YYYY</li>
+                                    <li><strong>File size limit:</strong> 10MB maximum</li>
+                                    <li><strong>Translations:</strong> Trial descriptions will be automatically translated to Xhosa, Zulu, and Afrikaans</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Upload Form -->
+                    <form asp-action="UploadCsv" method="post" enctype="multipart/form-data" class="mb-4">
+                        @Html.AntiForgeryToken()
+                        
+                        <div class="form-group">
+                            <label asp-for="CsvFile" class="form-label font-weight-bold">
+                                <i class="fas fa-file-csv mr-2"></i>Select CSV File
+                            </label>
+                            <div class="custom-file">
+                                <input asp-for="CsvFile" type="file" class="custom-file-input" accept=".csv" id="csvFile">
+                                <label class="custom-file-label" for="csvFile">Choose CSV file...</label>
+                            </div>
+                            <span asp-validation-for="CsvFile" class="text-danger"></span>
+                        </div>
+
+                        <div class="form-group">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-upload mr-2"></i>
+                                Upload Trials
+                            </button>
+                            <a asp-action="Dashboard" class="btn btn-secondary btn-lg ml-2">
+                                <i class="fas fa-arrow-left mr-2"></i>
+                                Back to Dashboard
+                            </a>
+                        </div>
+                    </form>
+
+                    <!-- Upload Results -->
+                    @if (Model.UploadResult != null)
+                    {
+                        <div class="card border-@(Model.UploadResult.Success ? "success" : "danger")">
+                            <div class="card-header bg-@(Model.UploadResult.Success ? "success" : "danger") text-white">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-@(Model.UploadResult.Success ? "check-circle" : "exclamation-triangle") mr-2"></i>
+                                    Upload Results
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <div class="text-center">
+                                            <h4 class="text-info">@Model.UploadResult.TrialsProcessed</h4>
+                                            <p class="text-muted">Trials Processed</p>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="text-center">
+                                            <h4 class="text-success">@Model.UploadResult.TrialsImported</h4>
+                                            <p class="text-muted">Trials Imported</p>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="text-center">
+                                            <h4 class="text-danger">@Model.UploadResult.Errors.Count</h4>
+                                            <p class="text-muted">Errors</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                @if (!string.IsNullOrEmpty(Model.UploadResult.Message))
+                                {
+                                    <div class="alert alert-@(Model.UploadResult.Success ? "success" : "danger") mt-3">
+                                        @Model.UploadResult.Message
+                                    </div>
+                                }
+
+                                @if (Model.UploadResult.HasErrors)
+                                {
+                                    <div class="mt-3">
+                                        <h6>Error Details:</h6>
+                                        <div class="list-group">
+                                            @foreach (var error in Model.UploadResult.Errors)
+                                            {
+                                                <div class="list-group-item list-group-item-danger">
+                                                    <i class="fas fa-exclamation-circle mr-2"></i>
+                                                    @error
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+
+                                @if (Model.UploadResult.Success && Model.UploadResult.TrialsImported > 0)
+                                {
+                                    <div class="mt-3">
+                                        <a asp-action="Dashboard" class="btn btn-success">
+                                            <i class="fas fa-eye mr-2"></i>
+                                            View Imported Trials
+                                        </a>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Update file label when file is selected
+        $('#csvFile').on('change', function(e) {
+            var fileName = e.target.files[0]?.name || 'Choose CSV file...';
+            $(this).next('.custom-file-label').html(fileName);
+        });
+
+        // Auto-dismiss alerts after 5 seconds
+        setTimeout(function() {
+            $('.alert-dismissible').alert('close');
+        }, 5000);
+    </script>
+}

@@ -12,9 +12,14 @@
                     <h1><i class="fas fa-tachometer-alt me-2"></i>Recruiter Dashboard</h1>
                     <p class="text-muted">Manage your clinical trials</p>
                 </div>
-                <a asp-action="CreateTrial" class="btn btn-primary btn-lg">
-                    <i class="fas fa-plus-circle me-2"></i>Create New Trial
-                </a>
+                <div>
+                    <a asp-action="CreateTrial" class="btn btn-primary btn-lg me-2">
+                        <i class="fas fa-plus-circle me-2"></i>Create New Trial
+                    </a>
+                    <a asp-action="UploadCsv" class="btn btn-success btn-lg">
+                        <i class="fas fa-upload me-2"></i>Upload CSV
+                    </a>
+                </div>
             </div>
 
             <!-- Stats Cards -->
@@ -59,7 +64,7 @@
                     </div>
                 </div>
                 <div class="col-md-3">
-                    <div class="card bg-info text-white">
+                    <div class="card @(Model.Sum(t => t.Enrollments.Count(e => e.Status == "Pending")) > 0 ? "bg-warning text-white border-warning" : "bg-info text-white") position-relative">
                         <div class="card-body">
                             <div class="d-flex justify-content-between">
                                 <div>
@@ -68,10 +73,47 @@
                                 </div>
                                 <i class="fas fa-clock fa-2x"></i>
                             </div>
+                            @if (Model.Sum(t => t.Enrollments.Count(e => e.Status == "Pending")) > 0)
+                            {
+                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                    !
+                                    <span class="visually-hidden">pending enrollments</span>
+                                </span>
+                            }
                         </div>
                     </div>
                 </div>
             </div>
+
+            <!-- Pending Enrollments Alert -->
+            @if (Model.Sum(t => t.Enrollments.Count(e => e.Status == "Pending")) > 0)
+            {
+                <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-exclamation-triangle fa-2x me-3"></i>
+                        <div class="flex-grow-1">
+                            <h5 class="alert-heading mb-1">
+                                <strong>@Model.Sum(t => t.Enrollments.Count(e => e.Status == "Pending")) Pending Enrollment@(Model.Sum(t => t.Enrollments.Count(e => e.Status == "Pending")) > 1 ? "s" : "") Require@(Model.Sum(t => t.Enrollments.Count(e => e.Status == "Pending")) == 1 ? "s" : "") Your Attention!</strong>
+                            </h5>
+                            <p class="mb-2">You have participants waiting for approval. Review and approve their enrollment requests to move forward with your trials.</p>
+                            <div class="mt-2">
+                                @foreach (var trial in Model.Where(t => t.Enrollments.Any(e => e.Status == "Pending")))
+                                {
+                                    <div class="d-inline-block me-3 mb-2">
+                                        <span class="badge bg-primary me-1">@trial.NCTNumber</span>
+                                        <span class="badge bg-warning text-dark me-2">@trial.Enrollments.Count(e => e.Status == "Pending") pending</span>
+                                        <a asp-action="ManageEnrollments" asp-route-id="@trial.TrialId" 
+                                           class="btn btn-sm btn-warning">
+                                            <i class="fas fa-eye me-1"></i>Review Now
+                                        </a>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                </div>
+            }
 
             <!-- Trials Table -->
             <div class="card">
@@ -97,10 +139,17 @@
                                 <tbody>
                                     @foreach (var trial in Model)
                                     {
-                                        <tr>
+                                        bool hasPendingEnrollments = trial.Enrollments.Any(e => e.Status == "Pending");
+                                        <tr class="@(hasPendingEnrollments ? "table-warning" : "")">
                                             <td>
-                                                <a asp-action="TrialDetails" asp-route-id="@trial.TrialId" 
-                                                   class="text-decoration-none">@trial.NCTNumber</a>
+                                                <div class="d-flex align-items-center">
+                                                    @if (hasPendingEnrollments)
+                                                    {
+                                                        <i class="fas fa-exclamation-circle text-warning me-2" title="Has pending enrollments"></i>
+                                                    }
+                                                    <a asp-action="TrialDetails" asp-route-id="@trial.TrialId" 
+                                                       class="text-decoration-none">@trial.NCTNumber</a>
+                                                </div>
                                             </td>
                                             <td>@trial.TrialName</td>
                                             <td>@trial.Disease.DiseaseName</td>
@@ -133,8 +182,13 @@
                                                         <i class="fas fa-eye"></i>
                                                     </a>
                                                     <a asp-action="ManageEnrollments" asp-route-id="@trial.TrialId" 
-                                                       class="btn btn-outline-success btn-sm" title="Manage Enrollments">
+                                                       class="btn @(hasPendingEnrollments ? "btn-warning" : "btn-outline-success") btn-sm" 
+                                                       title="@(hasPendingEnrollments ? "Review Pending Enrollments" : "Manage Enrollments")">
                                                         <i class="fas fa-users"></i>
+                                                        @if (hasPendingEnrollments)
+                                                        {
+                                                            <span class="badge bg-dark ms-1">@trial.Enrollments.Count(e => e.Status == "Pending")</span>
+                                                        }
                                                     </a>
                                                 </div>
                                             </td>

@@ -1,16 +1,20 @@
+using ClinicalTrial2._0.Data;
 using ClinicalTrial2._0.Data.Repositories;
 using ClinicalTrial2._0.Models;
 using ClinicalTrial2._0.Models.ViewModels;
+using Microsoft.EntityFrameworkCore;
 
 namespace ClinicalTrial2._0.Services
 {
     public class TrialService : ITrialService
     {
         private readonly IUnitOfWork _unitOfWork;
+        private readonly ApplicationDbContext _context;
 
-        public TrialService(IUnitOfWork unitOfWork)
+        public TrialService(IUnitOfWork unitOfWork, ApplicationDbContext context)
         {
             _unitOfWork = unitOfWork;
+            _context = context;
         }
 
         public async Task<IEnumerable<Trial>> GetAllTrialsAsync()
@@ -48,7 +52,13 @@ namespace ClinicalTrial2._0.Services
 
         public async Task<IEnumerable<Trial>> GetTrialsByCreatorAsync(string creatorId)
         {
-            return await _unitOfWork.Trials.GetTrialsByCreatorAsync(creatorId);
+            return await _context.Trials
+                .Include(t => t.Location)
+                .Include(t => t.Disease)
+                .Include(t => t.Enrollments)
+                .Where(t => t.CreatedByUserId == creatorId)
+                .OrderByDescending(t => t.CreatedDate)
+                .ToListAsync();
         }
 
         public async Task<bool> CreateTrialAsync(CreateTrialViewModel model, string creatorId)
@@ -164,7 +174,14 @@ namespace ClinicalTrial2._0.Services
 
         public async Task<IEnumerable<Enrollment>> GetParticipantEnrollmentsAsync(string participantId)
         {
-            return await _unitOfWork.Enrollments.FindAsync(e => e.ParticipantId == participantId);
+            return await _context.Enrollments
+                .Include(e => e.Trial)
+                    .ThenInclude(t => t.Location)
+                .Include(e => e.Trial)
+                    .ThenInclude(t => t.Disease)
+                .Where(e => e.ParticipantId == participantId)
+                .OrderByDescending(e => e.EnrollmentDate)
+                .ToListAsync();
         }
 
         public async Task<IEnumerable<Enrollment>> GetTrialEnrollmentsAsync(int trialId)
@@ -173,8 +190,14 @@ namespace ClinicalTrial2._0.Services
             if (trial == null)
                 throw new ArgumentException("Trial not found", nameof(trialId));
 
-            var enrollments = await _unitOfWork.Enrollments.FindAsync(e => e.TrialId == trialId);
-            return enrollments;
+            return await _context.Enrollments
+                .Include(e => e.Trial)
+                    .ThenInclude(t => t.Location)
+                .Include(e => e.Trial)
+                    .ThenInclude(t => t.Disease)
+                .Where(e => e.TrialId == trialId)
+                .OrderByDescending(e => e.EnrollmentDate)
+                .ToListAsync();
         }
 
         public async Task<bool> UpdateEnrollmentStatusAsync(int enrollmentId, string status, string? notes = null)
